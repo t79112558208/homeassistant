@@ -261,7 +261,7 @@ EOF
 ##
 # Pull supervisor image
 info "Install supervisor Docker container"
-docker pull "$HASSIO_DOCKER:latest" > /dev/null
+docker pull homeassistant/i386-hassio-supervisor:latest > /dev/null
 docker tag "$HASSIO_DOCKER:$HASSIO_VERSION" "$HASSIO_DOCKER:latest" > /dev/null
 
 ##
