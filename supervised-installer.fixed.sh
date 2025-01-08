@@ -38,7 +38,7 @@ URL_VERSION="https://version.home-assistant.io/stable.json"
 URL_BIN_APPARMOR="${URL_RAW_BASE}/hassio-apparmor"
 URL_BIN_HASSIO="${URL_RAW_BASE}/hassio-supervisor"
 URL_DOCKER_DAEMON="${URL_RAW_BASE}/docker-daemon.json"
-URL_HA="https://github.com/hom…ownload/4.36.0/ha_i386
+URL_HA="https://github.com/xvrfr/homeassistant/raw/main/files/hassio/ha_i386"
 URL_INTERFACES="${URL_RAW_BASE}/interfaces"
 URL_NM_CONF="${URL_RAW_BASE}/NetworkManager.conf"
 URL_NM_CONNECTION="${URL_RAW_BASE}/system-connection-default"
@@ -55,10 +55,8 @@ command -v jq > /dev/null 2>&1 || MISSING_PACKAGES+=("jq")
 command -v curl > /dev/null 2>&1 || MISSING_PACKAGES+=("curl")
 command -v dbus-daemon > /dev/null 2>&1 || MISSING_PACKAGES+=("dbus")
 
-
 if [ ! -z "${MISSING_PACKAGES}" ]; then
-    warn "The following is missing on the host and needs "
-    warn "to be installed and configured before running this script again"
+    warn "The following is missing on the host and needs to be installed and configured before running this script again"
     error "missing: ${MISSING_PACKAGES[@]}"
 fi
 
@@ -72,21 +70,17 @@ if [ ! -f "$FILE_DOCKER_CONF" ]; then
   # Write default configuration
   info "Creating default docker daemon configuration $FILE_DOCKER_CONF"
   curl -sL ${URL_DOCKER_DAEMON} > "${FILE_DOCKER_CONF}"
-#sudo echo "{" > /etc/docker/daemon.json
-#sudo echo "    \"log-driver\":   \"journald\"," >> /etc/docker/daemon.json
-#sudo echo "    \"log-level\":       \"error\"," >> /etc/docker/daemon.json
-#sudo echo "    \"storage-driver\":   \"overlay2\"" >> /etc/docker/daemon.json
-#sudo echo "}" >> /etc/docker/daemon.json
+
   # Restart Docker service
   info "Restarting docker service"
   systemctl restart "$SERVICE_DOCKER"
 else
   STORAGE_DRIVER=$(docker info -f "{{json .}}" | jq -r -e .Driver)
   LOGGING_DRIVER=$(docker info -f "{{json .}}" | jq -r -e .LoggingDriver)
-  if [[ "$STORAGE_DRIVER" != "overlay2" ]]; then 
+  if [[ "$STORAGE_DRIVER" != "overlay2" ]]; then
     warn "Docker is using $STORAGE_DRIVER and not 'overlay2' as the storage driver, this is not supported."
   fi
-  if [[ "$LOGGING_DRIVER"  != "journald" ]]; then 
+  if [[ "$LOGGING_DRIVER"  != "journald" ]]; then
     warn "Docker is using $LOGGING_DRIVER and not 'journald' as the logging driver, this is not supported."
   fi
 fi
@@ -101,61 +95,20 @@ fi
 # Create config for NetworkManager
 info "Creating NetworkManager configuration"
 curl -sL "${URL_NM_CONF}" > "${FILE_NM_CONF}"
-#sudo echo '[main]' > /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'dns=default' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'plugins=keyfile' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'autoconnect-retries-default=0' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'rc-manager=file' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo '' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo '[keyfile]' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'unmanaged-devices=type:bridge;type:tun;driver:veth' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo '' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo '[logging]' >> /etc/NetworkManager/NetworkManager.conf
-#sudo echo 'backend=journal' >> /etc/NetworkManager/NetworkManager.conf
 
 if [ ! -f "$FILE_NM_CONNECTION" ]; then
     curl -sL "${URL_NM_CONNECTION}" > "${FILE_NM_CONNECTION}"
-#sudo echo '[connection]' > /etc/NetworkManager/system-connections/default
-#sudo echo 'id=Supervisor default' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'uuid=b653440a-544a-4e4f-aef5-6c443171c4f8' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'type=802-3-ethernet' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'llmnr=2' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'mdns=2' >> /etc/NetworkManager/system-connections/default
-#sudo echo '' >> /etc/NetworkManager/system-connections/default
-#sudo echo '[ipv4]' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'method=auto' >> /etc/NetworkManager/system-connections/default
-#sudo echo '' >> /etc/NetworkManager/system-connections/default
-#sudo echo '[ipv6]' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'addr-gen-mode=stable-privacy' >> /etc/NetworkManager/system-connections/default
-#sudo echo 'method=auto' >> /etc/NetworkManager/system-connections/default
-
 fi
 
 warn "Changes are needed to the /etc/network/interfaces file"
-info "If you have modified the network on the host manualy, those can now be overwritten"
+info "If you have modified the network on the host manually, those can now be overwritten"
 info "If you do not overwrite this now you need to manually adjust it later"
 info "Do you want to proceed with overwriting the /etc/network/interfaces file? [N/y] "
 read answer < /dev/tty
 
 if [[ "$answer" =~ "y" ]] || [[ "$answer" =~ "Y" ]]; then
     info "Replacing /etc/network/interfaces"
-     curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}";
-#sudo chmod 777 /etc/network/interfaces
-#sudo echo '# This file describes the network interfaces available on your system' > /etc/network/interfaces
-#sudo echo '# and how to activate them. For more information, see interfaces(5).' >> /etc/network/interfaces
-#sudo echo '' >> /etc/network/interfaces
-#sudo echo 'source /etc/network/interfaces.d/*' >> /etc/network/interfaces
-#sudo echo '' >> /etc/network/interfaces
-#sudo echo '# The loopback network interface' >> /etc/network/interfaces
-#sudo echo 'auto lo' >> /etc/network/interfaces
-#sudo echo 'iface lo inet loopback' >> /etc/network/interfaces
-#sudo echo '' >> /etc/network/interfaces
-#sudo echo '#auto enp1s0' >> /etc/network/interfaces
-#sudo echo '#iface enp1s0 inet dhcp' >> /etc/network/interfaces
-#sudo echo '' >> /etc/network/interfaces
-#sudo echo '#auto wlp2s0' >> /etc/network/interfaces
-#sudo echo '#iface wlp2s0 inet dhcp' >> /etc/network/interfaces
-
+    curl -sL "${URL_INTERFACES}" > "${FILE_INTERFACES}"
 fi
 
 info "Restarting NetworkManager"
@@ -243,191 +196,3 @@ if [ ! -d "${PREFIX}/sbin" ]; then
 fi
 
 if [ ! -d "${PREFIX}/bin" ]; then
-    mkdir -p "${PREFIX}/bin"
-fi
-# Read infos from web
-HASSIO_VERSION="latest"
-
-##
-# Write configuration
-cat > "$CONFIG" <<- EOF
-{
-    "supervisor": "${HASSIO_DOCKER}",
-    "machine": "${MACHINE}",
-    "data": "${DATA_SHARE}"
-}
-EOF
-
-##
-# Pull supervisor image
-info "Install supervisor Docker container"
-docker pull homeassistant/i386-hassio-supervisor:latest > /dev/null
-docker tag "$HASSIO_DOCKER:$HASSIO_VERSION" "$HASSIO_DOCKER:latest" > /dev/null
-
-##
-# Install Hass.io Supervisor
-info "Install supervisor startup scripts"
-curl -sL ${URL_BIN_HASSIO} > "${PREFIX}/sbin/hassio-supervisor"
-#sudo chmod 777 /usr/sbin/hassio-supervisor
-#sudo echo '#!/usr/bin/env bash' > /usr/sbin/hassio-supervisor
-#sudo echo 'set -e' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo '# Load configs' >> /usr/sbin/hassio-supervisor
-#sudo echo 'CONFIG_FILE=/etc/hassio.json' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo "SUPERVISOR=\"\$(jq --raw-output '.supervisor' \${CONFIG_FILE})\"" >> /usr/sbin/hassio-supervisor
-#sudo echo "MACHINE=\"\$(jq --raw-output '.machine' \${CONFIG_FILE})\"" >> /usr/sbin/hassio-supervisor
-#sudo echo "HOMEASSISTANT=\"\$(jq --raw-output '.homeassistant' \${CONFIG_FILE})\"" >> /usr/sbin/hassio-supervisor
-#sudo echo "DATA=\"\$(jq --raw-output '.data // \"/usr/share/hassio\"' \${CONFIG_FILE})\"" >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo '# AppArmor Support' >> /usr/sbin/hassio-supervisor
-#sudo echo 'if command -v apparmor_parser > /dev/null 2>&1 && grep hassio-supervisor /sys/kernel/security/apparmor/profiles > /dev/null 2>&1; then' >> /usr/sbin/hassio-supervisor
-#sudo echo 'APPARMOR="--security-opt apparmor=hassio-supervisor"' >> /usr/sbin/hassio-supervisor
-#sudo echo 'else' >> /usr/sbin/hassio-supervisor
-#sudo echo 'APPARMOR="--security-opt apparmor:unconfined"' >> /usr/sbin/hassio-supervisor
-#sudo echo 'fi' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo '# Init supervisor' >> /usr/sbin/hassio-supervisor
-#sudo echo 'HASSIO_DATA=${DATA}' >> /usr/sbin/hassio-supervisor
-#sudo echo "HASSIO_IMAGE_ID=\$(docker inspect --format='{{.Id}}' \"\${SUPERVISOR}\")" >> /usr/sbin/hassio-supervisor
-#sudo echo "HASSIO_CONTAINER_ID=\$(docker inspect --format='{{.Image}}' hassio_supervisor || echo \"\")" >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo 'runSupervisor() {' >> /usr/sbin/hassio-supervisor
-#sudo echo 'docker rm --force hassio_supervisor || true' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo '# shellcheck disable=SC2086' >> /usr/sbin/hassio-supervisor
-#sudo echo 'docker run --name hassio_supervisor \' >> /usr/sbin/hassio-supervisor
-#sudo echo '--privileged \' >> /usr/sbin/hassio-supervisor
-#sudo echo '$APPARMOR \' >> /usr/sbin/hassio-supervisor
-#sudo echo '--security-opt seccomp=unconfined \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-v /run/docker.sock:/run/docker.sock \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-v /run/dbus:/run/dbus \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-v "${HASSIO_DATA}":/data \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-e SUPERVISOR_SHARE="${HASSIO_DATA}" \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-e SUPERVISOR_NAME=hassio_supervisor \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-e SUPERVISOR_MACHINE="${MACHINE}" \' >> /usr/sbin/hassio-supervisor
-#sudo echo '-e HOMEASSISTANT_REPOSITORY="${HOMEASSISTANT}" \' >> /usr/sbin/hassio-supervisor
-#sudo echo '${SUPERVISOR}' >> /usr/sbin/hassio-supervisor
-#sudo echo '}' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-#sudo echo '# Run supervisor' >> /usr/sbin/hassio-supervisor
-#sudo echo 'mkdir -p "${HASSIO_DATA}"' >> /usr/sbin/hassio-supervisor
-#sudo echo '([ "${HASSIO_IMAGE_ID}" = "${HASSIO_CONTAINER_ID}" ] && docker start --attach hassio_supervisor) || runSupervisor' >> /usr/sbin/hassio-supervisor
-#sudo echo '' >> /usr/sbin/hassio-supervisor
-
-curl -sL ${URL_SERVICE_HASSIO} > "${SYSCONFDIR}/systemd/system/hassio-supervisor.service"
-#sudo chmod 777 /etc/systemd/system/hassio-supervisor.service
-#sudo echo "[Unit]" > /etc/systemd/system/hassio-supervisor.service
-#sudo echo "Description=Hass.io supervisor" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "Requires=docker.service" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "After=docker.service dbus.socket" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "[Service]" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "Type=simple" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "Restart=always" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "RestartSec=5s" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "ExecStartPre=-/usr/bin/docker stop hassio_supervisor" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "ExecStart=/usr/sbin/hassio-supervisor" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "ExecStop=-/usr/bin/docker stop hassio_supervisor" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "[Install]" >> /etc/systemd/system/hassio-supervisor.service
-#sudo echo "WantedBy=multi-user.target" >> /etc/systemd/system/hassio-supervisor.service
-
-sed -i "s,%%HASSIO_CONFIG%%,${CONFIG},g" "${PREFIX}"/sbin/hassio-supervisor
-sed -i -e "s,%%DOCKER_BINARY%%,${BINARY_DOCKER},g" \
-       -e "s,%%DOCKER_SERVICE%%,${SERVICE_DOCKER},g" \
-       -e "s,%%HASSIO_BINARY%%,${PREFIX}/sbin/hassio-supervisor,g" \
-       "${SYSCONFDIR}/systemd/system/hassio-supervisor.service"
-
-chmod a+x "${PREFIX}/sbin/hassio-supervisor"
-systemctl enable hassio-supervisor.service > /dev/null 2>&1;
-
-#
-# Install Hass.io AppArmor
-info "Install AppArmor scripts"
-mkdir -p "${DATA_SHARE}/apparmor"
-curl -sL ${URL_BIN_APPARMOR} > "${PREFIX}/sbin/hassio-apparmor"
-#sudo echo '#!/bin/sh' > /usr/sbin/hassio-apparmor
-#sudo echo "set -e" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Load configs" >> /usr/sbin/hassio-apparmor
-#sudo echo "CONFIG_FILE=/etc/hassio.json" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Read configs" >> /usr/sbin/hassio-apparmor
-#sudo echo "DATA=\"\$(jq --raw-output '.data // \"/usr/share/hassio\"' \${CONFIG_FILE})\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "PROFILES_DIR=\"\${DATA}/apparmor\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "CACHE_DIR=\"\${PROFILES_DIR}/cache\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "REMOVE_DIR=\"\${PROFILES_DIR}/remove\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Exists AppArmor" >> /usr/sbin/hassio-apparmor
-#sudo echo "if ! command -v apparmor_parser > /dev/null 2>&1; then" >> /usr/sbin/hassio-apparmor
-#sudo echo 'echo "[Warning]: No apparmor_parser on host system!"' >> /usr/sbin/hassio-apparmor
-#sudo echo "exit 0" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Check folder structure" >> /usr/sbin/hassio-apparmor
-#sudo echo "mkdir -p \"\${PROFILES_DIR}\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "mkdir -p \"\${CACHE_DIR}\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "mkdir -p \"\${REMOVE_DIR}\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Load/Update exists/new profiles" >> /usr/sbin/hassio-apparmor
-#sudo echo "for profile in \"\${PROFILES_DIR}\"/*; do" >> /usr/sbin/hassio-apparmor
-#sudo echo "if [ ! -f \"\${profile}\" ]; then" >> /usr/sbin/hassio-apparmor
-#sudo echo "continue" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Load Profile" >> /usr/sbin/hassio-apparmor
-#sudo echo "if ! apparmor_parser -r -W -L \"\${CACHE_DIR}\" \"\${profile}\"; then" >> /usr/sbin/hassio-apparmor
-#sudo echo "echo \"[Error]: Can't load profile \${profile}\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "done" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Cleanup old profiles" >> /usr/sbin/hassio-apparmor
-#sudo echo "for profile in \"\${REMOVE_DIR}\"/*; do" >> /usr/sbin/hassio-apparmor
-#sudo echo "if [ ! -f \"\${profile}\" ]; then" >> /usr/sbin/hassio-apparmor
-#sudo echo "continue" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "# Unload Profile" >> /usr/sbin/hassio-apparmor
-#sudo echo "if apparmor_parser -R -W -L \"\${CACHE_DIR}\" \"\${profile}\"; then" >> /usr/sbin/hassio-apparmor
-#sudo echo "if rm -f \"\${profile}\"; then" >> /usr/sbin/hassio-apparmor
-#sudo echo "continue" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "fi" >> /usr/sbin/hassio-apparmor
-#sudo echo "echo \"[Error]: Can't remove profile \${profile}\"" >> /usr/sbin/hassio-apparmor
-#sudo echo "done" >> /usr/sbin/hassio-apparmor
-
-curl -sL ${URL_SERVICE_APPARMOR} > "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
-#sudo echo "[Unit]" > /etc/systemd/system/hassio-apparmor.service
-#sudo echo "Description=Hass.io AppArmor" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "Wants=hassio-supervisor.service" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "Before=docker.service hassio-supervisor.service" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "[Service]" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "Type=oneshot" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "RemainAfterExit =true" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "ExecStart=/usr/sbin/hassio-apparmor" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "[Install]" >> /etc/systemd/system/hassio-apparmor.service
-#sudo echo "WantedBy=multi-user.target" >> /etc/systemd/system/hassio-apparmor.service
-
-curl -sL ${URL_APPARMOR_PROFILE} > "${DATA_SHARE}/apparmor/hassio-supervisor"
-
-sed -i "s,%%HASSIO_CONFIG%%,${CONFIG},g" "${PREFIX}/sbin/hassio-apparmor"
-sed -i -e "s,%%DOCKER_SERVICE%%,${SERVICE_DOCKER},g" \
-    -e "s,%%HASSIO_APPARMOR_BINARY%%,${PREFIX}/sbin/hassio-apparmor,g" \
-    "${SYSCONFDIR}/systemd/system/hassio-apparmor.service"
-
-chmod a+x "${PREFIX}/sbin/hassio-apparmor"
-systemctl enable hassio-apparmor.service > /dev/null 2>&1;
-systemctl start hassio-apparmor.service
-
-
-##
-# Init system
-info "Start Home Assistant Supervised"
-systemctl start hassio-supervisor.service
-
-##
-# Setup CLI
-info "Installing the 'ha' cli"
-curl -sL ${URL_HA} > "${PREFIX}/bin/ha"
-chmod a+x "${PREFIX}/bin/ha"
-
-info
-info "Home Assistant supervised is now installed"
-info "First setup will take some time, when it's ready you can reach it here:"
-info "http://${IP_ADDRESS}:8123"
-info
