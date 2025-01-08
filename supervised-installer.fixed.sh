@@ -246,7 +246,7 @@ if [ ! -d "${PREFIX}/bin" ]; then
     mkdir -p "${PREFIX}/bin"
 fi
 # Read infos from web
-HASSIO_VERSION=$(curl -s $URL_VERSION | jq -e -r '.supervisor')
+HASSIO_VERSION="latest"
 
 ##
 # Write configuration
